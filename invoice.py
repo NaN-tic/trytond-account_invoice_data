@@ -129,3 +129,35 @@ class InvoiceLine:
             'sequence': 1,
         }
         return res
+
+    @classmethod
+    def get_invoice_line_product(self, party, product, qty=1, desc=None):
+        """
+        Get Account Invoice Lines values
+        :param contract: the BrowseRecord of the contract
+        :param product: the BrowseRecord of the product
+        :param qty: Int quantity
+        :param desc: Str line
+        :return: dict account invoice values
+        """
+        if not product.account_revenue and not (product.category and
+            product.category.account_revenue):
+            self.raise_user_error('missing_account_revenue',
+                error_args=(product.name, product))
+
+        vals = {
+            'type': 'line',
+            'quantity': qty,
+            'unit': product.default_uom,
+            'product': product,
+            'description': desc or product.name,
+            'party': party,
+            'product_uom_category': product.category and
+                product.category.id or None,
+            'account': product.account_revenue or
+                product.category.account_revenue,
+            'unit_price': product.list_price,
+            'taxes': [('add', product.customer_taxes)],
+            'sequence': 1,
+         }
+        return vals
