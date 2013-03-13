@@ -147,9 +147,8 @@ class InvoiceLine:
         :param desc: Str line
         :return: dict account invoice values
         """
-        Date = Pool().get('ir.date')
-        InvoiceLine = Pool().get('account.invoice.line')
         Invoice = Pool().get('account.invoice')
+        InvoiceLine = Pool().get('account.invoice.line')
 
         account = None
         if product.account_revenue:
