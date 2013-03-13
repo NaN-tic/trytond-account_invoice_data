@@ -96,13 +96,13 @@ class InvoiceLine:
 
         account_found = False
         if product.account_revenue:
-	        account_found = True
-	    category = product.category
-	    while category or not account_found:
-	        if category.account_revenue:
-	            account_found = True                
+            account_found = True
+        category = product.category
+        while category or not account_found:
+            if category.account_revenue:
+                account_found = True                
                 category = category.parent
-	    if not account_found: 
+        if not account_found: 
             self.raise_user_error('missing_account_revenue')
 
         uoms = ProductUom.search(['symbol', '=', uom])
@@ -148,13 +148,13 @@ class InvoiceLine:
         """
         account = None
         if product.account_revenue:
-	        account = product.account_revenue
-	    category = product.category
-	    while category or not account_found:
-	        if category.account_revenue:
-	            account = category.account_revenue                
+            account = product.account_revenue
+        category = product.category
+        while category or not account_found:
+            if category.account_revenue:
+                account = category.account_revenue                
                 category = category.parent
-	    if not account: 
+        if not account: 
             self.raise_user_error('missing_account_revenue')
 
         vals = {
