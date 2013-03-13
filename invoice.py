@@ -94,10 +94,16 @@ class InvoiceLine:
         InvoiceLine = Pool().get('account.invoice.line')
         ProductUom = Pool().get('product.uom')
 
-        if not product.account_revenue and not (product.category and
-            product.category.account_revenue):
-            self.raise_user_error('missing_account_revenue',
-                error_args=(product.name, product))
+        account_found = False
+        if product.account_revenue:
+	        account_found = True
+	    category = product.category
+	    while category or not account_found:
+	        if category.account_revenue:
+	            account_found = True                
+                category = category.parent
+	    if not account_found: 
+            self.raise_user_error('missing_account_revenue')
 
         uoms = ProductUom.search(['symbol', '=', uom])
         if not len(uoms) > 0:
@@ -140,10 +146,16 @@ class InvoiceLine:
         :param desc: Str line
         :return: dict account invoice values
         """
-        if not product.account_revenue and not (product.category and
-            product.category.account_revenue):
-            self.raise_user_error('missing_account_revenue',
-                error_args=(product.name, product))
+        account = None
+        if product.account_revenue:
+	        account = product.account_revenue
+	    category = product.category
+	    while category or not account_found:
+	        if category.account_revenue:
+	            account = category.account_revenue                
+                category = category.parent
+	    if not account: 
+            self.raise_user_error('missing_account_revenue')
 
         vals = {
             'type': 'line',
@@ -154,8 +166,7 @@ class InvoiceLine:
             'party': party,
             'product_uom_category': product.category and
                 product.category.id or None,
-            'account': product.account_revenue or
-                product.category.account_revenue,
+            'account': account,
             'unit_price': product.list_price,
             'taxes': [('add', product.customer_taxes)],
             'sequence': 1,
