@@ -100,10 +100,11 @@ class InvoiceLine:
         category = product.category
         while category or not account_found:
             if category.account_revenue:
-                account_found = True                
+                account_found = True
                 category = category.parent
         if not account_found: 
-            self.raise_user_error('missing_account_revenue')
+            self.raise_user_error('missing_account_revenue',
+                error_args=(product.name, product))
 
         uoms = ProductUom.search(['symbol', '=', uom])
         if not len(uoms) > 0:
@@ -146,16 +147,35 @@ class InvoiceLine:
         :param desc: Str line
         :return: dict account invoice values
         """
+        Date = Pool().get('ir.date')
+        InvoiceLine = Pool().get('account.invoice.line')
+        Invoice = Pool().get('account.invoice')
+
         account = None
         if product.account_revenue:
             account = product.account_revenue
         category = product.category
         while category or not account_found:
             if category.account_revenue:
-                account = category.account_revenue                
+                account = category.account_revenue
                 category = category.parent
         if not account: 
-            self.raise_user_error('missing_account_revenue')
+            self.raise_user_error('missing_account_revenue',
+                error_args=(product.name, product))
+
+        invoice = Invoice()
+        invoice.party = party
+        invoice.type = 'out_invoice'
+        invoice.currency = invoice.default_currency()
+
+        line = InvoiceLine()
+        line.quantity = qty
+        line.invoice = invoice
+        line.product = product
+        line.description = desc or product.name
+        line.party = party
+        line.unit = product.default_uom
+        values = line.on_change_product()
 
         vals = {
             'type': 'line',
@@ -166,8 +186,8 @@ class InvoiceLine:
             'party': party,
             'product_uom_category': product.category and
                 product.category.id or None,
-            'account': account,
-            'unit_price': product.list_price,
+            'account': values.get('account'),
+            'unit_price': values.get('unit_price'),
             'taxes': [('add', product.customer_taxes)],
             'sequence': 1,
          }
