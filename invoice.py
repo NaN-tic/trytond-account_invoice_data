@@ -131,7 +131,7 @@ class InvoiceLine:
                 product.category.id or None,
             'account': values.get('account'),
             'unit_price': values.get('unit_price'),
-            'taxes': [('add', product.customer_taxes)],
+            'taxes': [('add', values.get('taxes'))],
             'note': note,
             'sequence': 1,
         }
@@ -187,7 +187,7 @@ class InvoiceLine:
                 product.category.id or None,
             'account': values.get('account'),
             'unit_price': values.get('unit_price'),
-            'taxes': [('add', product.customer_taxes)],
+            'taxes': [('add', values.get('taxes'))],
             'sequence': 1,
          }
         return vals
