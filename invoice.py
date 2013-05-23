@@ -146,17 +146,20 @@ class InvoiceLine:
         :param desc: Str line
         :return: dict account invoice values
         """
-        Invoice = Pool().get('account.invoice')
-        InvoiceLine = Pool().get('account.invoice.line')
+        pool = Pool()
+        Invoice = pool.get('account.invoice')
+        InvoiceLine = pool.get('account.invoice.line')
+        Date = pool.get('ir.date')
 
         account = None
         if product.account_revenue:
             account = product.account_revenue
         category = product.category
-        while category or not account:
-            if category.account_revenue:
-                account = category.account_revenue
-                category = category.parent
+        if category:
+            while category or not account:
+                if category.account_revenue:
+                    account = category.account_revenue
+                    category = category.parent
         if not account: 
             self.raise_user_error('missing_account_revenue',
                 error_args=(product.name, product))
@@ -165,6 +168,7 @@ class InvoiceLine:
         invoice.party = party
         invoice.type = 'out_invoice'
         invoice.currency = invoice.default_currency()
+        invoice.currency_date = Date.today()
 
         line = InvoiceLine()
         line.quantity = qty
@@ -188,5 +192,5 @@ class InvoiceLine:
             'unit_price': values.get('unit_price'),
             'taxes': [('add', values.get('taxes'))],
             'sequence': 1,
-         }
+            }
         return vals
