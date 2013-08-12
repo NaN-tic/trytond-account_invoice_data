@@ -7,6 +7,13 @@ from trytond.transaction import Transaction
 __all__ = ['Invoice', 'InvoiceLine']
 __metaclass__ = PoolMeta
 
+_TYPE2JOURNAL = {
+    'out_invoice': 'revenue',
+    'in_invoice': 'expense',
+    'out_credit_note': 'revenue',
+    'in_credit_note': 'expense',
+}
+
 
 class Invoice:
     'Invoice'
@@ -31,11 +38,12 @@ class Invoice:
         Journal = Pool().get('account.journal')
         PaymentTerm = Pool().get('account.invoice.payment_term')
 
-        journal_id = Journal.search([
-            ('type', '=', 'expense'),
-            ], limit=1)
-        if journal_id:
-            journal_id = journal_id[0]
+        journals = Journal.search([
+                ('type', '=', _TYPE2JOURNAL.get(self.type or 'out_invoice',
+                        'revenue')),
+                ], limit=1)
+        if journals:
+            journal_id, = journals
 
         payment_term_ids = PaymentTerm.search([('active', '=', True)])
         if not len(payment_term_ids) > 0:
@@ -101,7 +109,7 @@ class InvoiceLine:
             if category.account_revenue:
                 account_found = True
                 category = category.parent
-        if not account_found: 
+        if not account_found:
             self.raise_user_error('missing_account_revenue',
                 error_args=(product.name, product))
 
@@ -160,7 +168,7 @@ class InvoiceLine:
                 if category.account_revenue:
                     account = category.account_revenue
                     category = category.parent
-        if not account: 
+        if not account:
             self.raise_user_error('missing_account_revenue',
                 error_args=(product.name, product))
 
