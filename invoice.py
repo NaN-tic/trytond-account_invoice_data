@@ -42,12 +42,13 @@ class Invoice:
                         'revenue')),
                 ], limit=1)
         if journals:
-            journal_id, = journals
+            journal, = journals
 
-        payment_term_ids = PaymentTerm.search([('active', '=', True)])
-        if not len(payment_term_ids) > 0:
+        payment_terms = PaymentTerm.search([], limit=1)
+        if not payment_terms:
             self.raise_user_error('missing_payment_term',
                 error_args=(party.name, party))
+        payment_term, = payment_terms
 
         if not party.account_receivable:
             self.raise_user_error('missing_account_receivable',
@@ -58,16 +59,14 @@ class Invoice:
         company = Pool().get('company.company')(company)
 
         res = {
-            'company': company.id,
+            'company': company,
             'type': 'out_invoice',
-            'journal': journal_id,
-            'party': party.id,
+            'journal': journal,
+            'party': party,
             'invoice_address': invoice_address and invoice_address or None,
-            'currency': company.currency.id,
-            'account': party.account_receivable.id,
-            'payment_term': party.customer_payment_term and
-                party.customer_payment_term.id or
-                payment_term_ids[0],
+            'currency': company.currency,
+            'account': party.account_receivable,
+            'payment_term': party.customer_payment_term or payment_term,
             'description': description,
         }
         return res
@@ -111,10 +110,10 @@ class InvoiceLine:
             self.raise_user_error('missing_account_revenue',
                 error_args=(product.name, product))
 
-        uoms = ProductUom.search(['symbol', '=', uom])
-        if not len(uoms) > 0:
+        uoms = ProductUom.search(['symbol', '=', uom], limit=1)
+        if not uoms:
             self.raise_user_error('missing_product_uom', error_args=(uom))
-        uom = uoms[0]
+        uom, = uoms
 
         line = InvoiceLine()
         line.unit = uom
@@ -129,11 +128,10 @@ class InvoiceLine:
             'type': 'line',
             'quantity': quantity,
             'unit': uom,
-            'product': product.id,
+            'product': product,
             'description': product.name,
             'party': invoice.party,
-            'product_uom_category': product.category and
-                product.category.id or None,
+            'product_uom_category': product.category or None,
             'account': values.get('account'),
             'unit_price': values.get('unit_price'),
             'taxes': [('add', values.get('taxes'))],
@@ -145,12 +143,12 @@ class InvoiceLine:
     @classmethod
     def get_invoice_line_product(self, party, product, qty=1, desc=None):
         """
-        Get Account Invoice Lines values
-        :param contract: the BrowseRecord of the contract
+        Get Product values
+        :param party: the BrowseRecord of the party
         :param product: the BrowseRecord of the product
         :param qty: Int quantity
         :param desc: Str line
-        :return: dict account invoice values
+        :return: dict product values
         """
         pool = Pool()
         Invoice = pool.get('account.invoice')
@@ -192,8 +190,7 @@ class InvoiceLine:
             'product': product,
             'description': desc or product.name,
             'party': party,
-            'product_uom_category': product.category and
-                product.category.id or None,
+            'product_uom_category': product.category or None,
             'account': values.get('account'),
             'unit_price': values.get('unit_price'),
             'taxes': [('add', values.get('taxes'))],
