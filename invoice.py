@@ -16,7 +16,6 @@ _TYPE2JOURNAL = {
 
 
 class Invoice:
-    'Invoice'
     __name__ = 'account.invoice'
 
     @classmethod
@@ -75,7 +74,6 @@ class Invoice:
 
 
 class InvoiceLine:
-    'Invoice Line'
     __name__ = 'account.invoice.line'
 
     @classmethod
