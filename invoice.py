@@ -159,7 +159,7 @@ class InvoiceLine:
         if product.account_revenue:
             account = product.account_revenue
         category = product.category
-        if category:
+        if not account and category:
             while category or not account:
                 if category.account_revenue:
                     account = category.account_revenue
