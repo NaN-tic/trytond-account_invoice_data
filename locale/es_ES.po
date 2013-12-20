@@ -2,18 +2,14 @@
 msgid ""
 msgstr "Content-Type: text/plain; charset=utf-8\n"
 
-msgctxt "error:account.invoice.line:"
-msgid "Not available Product Uom \"%s\""
-msgstr "No se encuentra ninguna unidad de medida \"%s\"."
-
-msgctxt "error:account.invoice.line:"
-msgid "Product \"%s\" (%s) must be a Account Revenue!"
-msgstr "Seleccione en el producto \"%s\" (%s) una cuenta de ingresos."
+msgctxt "error:account.invoice:"
+msgid "A payment term has not been defined."
+msgstr "No se ha definido un plazo de pago."
 
 msgctxt "error:account.invoice:"
-msgid "Party \"%s\" (%s) must be a Account Receivable!"
-msgstr "Seleccione al tercero \"%s\" (%s) una cuenta a cobrar."
+msgid "Party \"%s\" (%s) must have a payable account."
+msgstr "El tercero \"%s\" (%s) debe tener una cuenta a pagar."
 
 msgctxt "error:account.invoice:"
-msgid "Party \"%s\" (%s) must be a Payment term!"
-msgstr "Seleccione al tercero \"%s\" (%s) un plazo de pago de cliente."
+msgid "Party \"%s\" (%s) must have a receivable account."
+msgstr "El tercero \"%s\" (%s) debe tener una cuenta a cobrar."

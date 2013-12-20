@@ -3,16 +3,17 @@
 #the full copyright notices and license terms.
 from trytond.pool import Pool, PoolMeta
 from trytond.transaction import Transaction
+from trytond.modules.account_invoice.invoice import _TYPE2JOURNAL
 
 __all__ = ['Invoice', 'InvoiceLine']
 __metaclass__ = PoolMeta
 
-_TYPE2JOURNAL = {
-    'out_invoice': 'revenue',
-    'in_invoice': 'expense',
-    'out_credit_note': 'revenue',
-    'in_credit_note': 'expense',
-}
+#_TYPE2JOURNAL = {
+    #'out_invoice': 'revenue',
+    #'in_invoice': 'expense',
+    #'out_credit_note': 'revenue',
+    #'in_credit_note': 'expense',
+#}
 
 
 class Invoice:
@@ -22,13 +23,16 @@ class Invoice:
     def __setup__(cls):
         super(Invoice, cls).__setup__()
         cls._error_messages.update({
-            'missing_payment_term': 'Party "%s" (%s) must be a Payment term!',
-            'missing_account_receivable': 'Party "%s" (%s) must be a '
-                'Account Receivable!',
-            })
+                'missing_payment_term': 'A payment term has not been defined.',
+                'missing_account_receivable': 'Party "%s" (%s) must have a '
+                    'receivable account.',
+                'missing_account_payable': 'Party "%s" (%s) must have a '
+                    'payable account.',
+                })
 
     @classmethod
-    def get_invoice_data(self, party, description=None):
+    def get_invoice_data(self, party, description=None,
+            invoice_type='out_invoice'):
         '''
         Return invoice values from party
         :param party: the BrowseRecord of the party
@@ -38,21 +42,28 @@ class Invoice:
         PaymentTerm = Pool().get('account.invoice.payment_term')
 
         journals = Journal.search([
-                ('type', '=', _TYPE2JOURNAL.get(self.type or 'out_invoice',
-                        'revenue')),
+                ('type', '=', _TYPE2JOURNAL.get(invoice_type, 'revenue')),
                 ], limit=1)
         if journals:
             journal, = journals
 
         payment_terms = PaymentTerm.search([], limit=1)
         if not payment_terms:
-            self.raise_user_error('missing_payment_term',
-                error_args=(party.name, party))
+            self.raise_user_error('missing_payment_term')
         payment_term, = payment_terms
 
-        if not party.account_receivable:
-            self.raise_user_error('missing_account_receivable',
-                error_args=(party.name, party))
+        if invoice_type in ['out_invoice', 'out_credit_note']:
+            if not party.account_receivable:
+                self.raise_user_error('missing_account_receivable',
+                    error_args=(party.name, party))
+            account = party.account_receivable
+            payment_term = party.customer_payment_term or payment_term
+        else:
+            if not party.account_payable:
+                self.raise_user_error('missing_account_payable',
+                    error_args=(party.name, party))
+            account = party.account_payable
+            payment_term = party.supplier_payment_term or payment_term
 
         invoice_address = party.address_get(type='invoice')
         company = Transaction().context.get('company')
@@ -60,13 +71,13 @@ class Invoice:
 
         res = {
             'company': company,
-            'type': 'out_invoice',
+            'type': invoice_type,
             'journal': journal,
             'party': party,
             'invoice_address': invoice_address and invoice_address or None,
             'currency': company.currency,
-            'account': party.account_receivable,
-            'payment_term': party.customer_payment_term or payment_term,
+            'account': account,
+            'payment_term': payment_term,
             'description': description,
         }
         return res
@@ -79,13 +90,12 @@ class InvoiceLine:
     def __setup__(cls):
         super(InvoiceLine, cls).__setup__()
         cls._error_messages.update({
-            'missing_account_revenue': 'Product "%s" (%s) must be a '
-                'Account Revenue!',
-            'missing_product_uom': 'Not available Product Uom "%s"',
-            })
+                'missing_product_uom': 'Product Uom "%s" is not available.',
+                })
 
     @classmethod
-    def get_invoice_line_data(self, invoice, product, quantity, uom='u', note=None):
+    def get_invoice_line_data(self, invoice, product, quantity, uom='u',
+            note=None):
         '''
         Return invoice line values
         :param invoice: the BrowseRecord of the invoice
@@ -98,17 +108,12 @@ class InvoiceLine:
         InvoiceLine = Pool().get('account.invoice.line')
         ProductUom = Pool().get('product.uom')
 
-        account_found = False
-        if product.account_revenue:
-            account_found = True
-        category = product.category
-        while category or not account_found:
-            if category.account_revenue:
-                account_found = True
-                category = category.parent
-        if not account_found:
-            self.raise_user_error('missing_account_revenue',
-                error_args=(product.name, product))
+        invoice_type = invoice.type or 'out_invoice'
+        # Test if a revenue or an expense account exists for the product
+        if invoice_type in ['out_invoice', 'out_credit_note']:
+            product.account_revenue_used
+        else:
+            product.account_expense_used
 
         uoms = ProductUom.search(['symbol', '=', uom], limit=1)
         if not uoms:
@@ -141,36 +146,31 @@ class InvoiceLine:
         return res
 
     @classmethod
-    def get_invoice_line_product(self, party, product, qty=1, desc=None):
-        """
+    def get_invoice_line_product(self, party, product, qty=1, desc=None,
+            invoice_type='out_invoice'):
+        '''
         Get Product values
         :param party: the BrowseRecord of the party
         :param product: the BrowseRecord of the product
         :param qty: Int quantity
         :param desc: Str line
-        :return: dict product values
-        """
+        :param invoice_type: Str invoice type to create
+        :return: a dict values
+        '''
         pool = Pool()
         Invoice = pool.get('account.invoice')
         InvoiceLine = pool.get('account.invoice.line')
         Date = pool.get('ir.date')
 
-        account = None
-        if product.account_revenue:
-            account = product.account_revenue
-        category = product.category
-        if not account and category:
-            while category or not account:
-                if category.account_revenue:
-                    account = category.account_revenue
-                    category = category.parent
-        if not account:
-            self.raise_user_error('missing_account_revenue',
-                error_args=(product.name, product))
+        # Test if a revenue or an expense account exists for the product
+        if invoice_type in ['out_invoice', 'out_credit_note']:
+            product.account_revenue_used
+        else:
+            product.account_expense_used
 
         invoice = Invoice()
         invoice.party = party
-        invoice.type = 'out_invoice'
+        invoice.type = invoice_type
         invoice.currency = invoice.default_currency()
         invoice.currency_date = Date.today()
 
