@@ -38,14 +38,9 @@ class Invoice:
         :param party: the BrowseRecord of the party
         :return: a dict values
         '''
-        Journal = Pool().get('account.journal')
-        PaymentTerm = Pool().get('account.invoice.payment_term')
-
-        journals = Journal.search([
-                ('type', '=', _TYPE2JOURNAL.get(invoice_type, 'revenue')),
-                ], limit=1)
-        if journals:
-            journal, = journals
+        pool = Pool()
+        Journal = pool.get('account.journal')
+        PaymentTerm = pool.get('account.invoice.payment_term')
 
         payment_terms = PaymentTerm.search([], limit=1)
         if not payment_terms:
@@ -65,22 +60,36 @@ class Invoice:
             account = party.account_payable
             payment_term = party.supplier_payment_term or payment_term
 
-        invoice_address = party.address_get(type='invoice')
+        journals = Journal.search([
+                ('type', '=', _TYPE2JOURNAL.get(invoice_type, 'revenue')),
+                ], limit=1)
+        if journals:
+            journal, = journals
+
         company = Transaction().context.get('company')
         company = Pool().get('company.company')(company)
 
-        res = {
-            'company': company,
-            'type': invoice_type,
-            'journal': journal,
-            'party': party,
-            'invoice_address': invoice_address and invoice_address or None,
-            'currency': company.currency,
-            'account': account,
-            'payment_term': payment_term,
-            'description': description,
-        }
-        return res
+        values = {'party': party}
+        vals = Invoice(**values).on_change_party()
+
+        vals['party'] = party
+        vals['type'] = invoice_type
+        vals['journal'] = journal
+        vals['account'] = account
+
+        if description:
+            vals['description'] = description
+
+        if not 'payment_term' in vals:
+            vals['payment_term'] = payment_term
+
+        if not 'company' in vals:
+            vals['company'] = company
+
+        if not 'currency' in vals:
+            vals['currency'] = company.currency
+
+        return vals
 
 
 class InvoiceLine:
