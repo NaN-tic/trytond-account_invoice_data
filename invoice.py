@@ -28,6 +28,7 @@ class Invoice:
                     'receivable account.',
                 'missing_account_payable': 'Party "%s" (%s) must have a '
                     'payable account.',
+                'missing_journal': 'A journal has not been defined for "%s".',
                 })
 
     @classmethod
@@ -36,11 +37,12 @@ class Invoice:
         '''
         Return invoice values from party
         :param party: the BrowseRecord of the party
-        :return: a dict values
+        :return: an object
         '''
         pool = Pool()
         Journal = pool.get('account.journal')
         PaymentTerm = pool.get('account.invoice.payment_term')
+        Invoice = pool.get('account.invoice')
 
         payment_terms = PaymentTerm.search([], limit=1)
         if not payment_terms:
@@ -63,33 +65,30 @@ class Invoice:
         journals = Journal.search([
                 ('type', '=', _TYPE2JOURNAL.get(invoice_type, 'revenue')),
                 ], limit=1)
-        if journals:
-            journal, = journals
+        if not journals:
+            self.raise_user_error('missing_journal',
+                error_args=(invoice_type))
+        journal, = journals
 
         company = Transaction().context.get('company')
         company = Pool().get('company.company')(company)
 
-        values = {'party': party}
-        vals = Invoice(**values).on_change_party()
+        invoice = Invoice()
+        invoice.party = party
+        invoice.type = invoice_type
+        invoice.company = company
+        invoice.journal = journal
 
-        vals['party'] = party
-        vals['type'] = invoice_type
-        vals['journal'] = journal
-        vals['account'] = account
+        for key, value in invoice.on_change_party().iteritems():
+            setattr(invoice, key, value)
 
+        if not hasattr(invoice, 'payment_term'):
+            invoice.payment_term = payment_term
+        if not hasattr(invoice, 'currency'):
+            invoice.currency = company.currency
         if description:
-            vals['description'] = description
-
-        if not 'payment_term' in vals:
-            vals['payment_term'] = payment_term
-
-        if not 'company' in vals:
-            vals['company'] = company
-
-        if not 'currency' in vals:
-            vals['currency'] = company.currency
-
-        return vals
+            invoice.description = description
+        return invoice
 
 
 class InvoiceLine:
@@ -112,7 +111,7 @@ class InvoiceLine:
         :param quantity: the float of the quantity
         :param uom: str of the unit of mesure
         :param note: the str of the note line
-        :return: a dict values
+        :return: an object
         '''
         InvoiceLine = Pool().get('account.invoice.line')
         ProductUom = Pool().get('product.uom')
@@ -136,23 +135,14 @@ class InvoiceLine:
         line.invoice = invoice
         line.description = None
         line.party = invoice.party
-        values = line.on_change_product()
-        res = {
-            'invoice': invoice,
-            'type': 'line',
-            'quantity': quantity,
-            'unit': uom,
-            'product': product,
-            'description': product.name,
-            'party': invoice.party,
-            'product_uom_category': product.category or None,
-            'account': values.get('account'),
-            'unit_price': values.get('unit_price'),
-            'taxes': [('add', values.get('taxes'))],
-            'note': note,
-            'sequence': 1,
-        }
-        return res
+        line.unit = product.default_uom
+        line.type = 'line'
+        line.sequence = 1
+
+        for key, value in line.on_change_product().iteritems():
+            setattr(line, key, value)
+
+        return line
 
     @classmethod
     def get_invoice_line_product(self, party, product, qty=1, desc=None,
@@ -164,7 +154,7 @@ class InvoiceLine:
         :param qty: Int quantity
         :param desc: Str line
         :param invoice_type: Str invoice type to create
-        :return: a dict values
+        :return: an object
         '''
         pool = Pool()
         Invoice = pool.get('account.invoice')
@@ -190,19 +180,17 @@ class InvoiceLine:
         line.description = desc or product.name
         line.party = party
         line.unit = product.default_uom
-        values = line.on_change_product()
 
-        vals = {
-            'type': 'line',
-            'quantity': qty,
-            'unit': product.default_uom,
-            'product': product,
-            'description': desc or product.name,
-            'party': party,
-            'product_uom_category': product.category or None,
-            'account': values.get('account'),
-            'unit_price': values.get('unit_price'),
-            'taxes': [('add', values.get('taxes'))],
-            'sequence': 1,
-            }
-        return vals
+        account_line = InvoiceLine()
+        account_line.quantity = qty
+        account_line.product = product
+        account_line.description = desc or product.name
+        account_line.party = party
+        account_line.unit = product.default_uom
+        account_line.type = 'line'
+        account_line.sequence = 1
+
+        for key, value in line.on_change_product().iteritems():
+            setattr(account_line, key, value)
+
+        return account_line
