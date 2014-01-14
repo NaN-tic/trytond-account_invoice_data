@@ -78,6 +78,7 @@ class Invoice:
         invoice.type = invoice_type
         invoice.company = company
         invoice.journal = journal
+        invoice.account = account
 
         for key, value in invoice.on_change_party().iteritems():
             setattr(invoice, key, value)
