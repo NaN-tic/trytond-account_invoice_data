@@ -159,7 +159,13 @@ class InvoiceLine:
         pool = Pool()
         Invoice = pool.get('account.invoice')
         InvoiceLine = pool.get('account.invoice.line')
+        Product = pool.get('product.product')
         Date = pool.get('ir.date')
+
+        if not desc:
+            lang = party.lang and party.lang.code or Transaction().language
+            with Transaction().set_context(language=lang):
+                product = Product(product.id)
 
         # Test if a revenue or an expense account exists for the product
         if invoice_type in ['out_invoice', 'out_credit_note']:
