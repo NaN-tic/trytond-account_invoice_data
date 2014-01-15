@@ -70,11 +70,13 @@ class Invoice:
                 error_args=(invoice_type))
         journal, = journals
 
+        invoice_address = party.address_get(type='invoice')
         company = Transaction().context.get('company')
         company = Pool().get('company.company')(company)
 
         invoice = Invoice()
         invoice.party = party
+        invoice.invoice_address = invoice_address and invoice_address or None
         invoice.type = invoice_type
         invoice.company = company
         invoice.journal = journal
