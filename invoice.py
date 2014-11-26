@@ -178,6 +178,7 @@ class InvoiceLine:
 
         invoice = Invoice()
         invoice.party = party
+        invoice.invoice_date = None
         invoice.type = invoice_type
         invoice.currency = invoice.default_currency()
         invoice.currency_date = Date.today()
