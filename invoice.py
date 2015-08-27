@@ -32,7 +32,7 @@ class Invoice:
                 })
 
     @classmethod
-    def get_invoice_data(self, party, description=None,
+    def get_invoice_data(cls, party, description=None,
             invoice_type='out_invoice'):
         '''
         Return invoice values from party
@@ -40,24 +40,25 @@ class Invoice:
         :return: an object
         '''
         pool = Pool()
+        Date = pool.get('ir.date')
         Journal = pool.get('account.journal')
         PaymentTerm = pool.get('account.invoice.payment_term')
         Invoice = pool.get('account.invoice')
 
         payment_terms = PaymentTerm.search([], limit=1)
         if not payment_terms:
-            self.raise_user_error('missing_payment_term')
+            cls.raise_user_error('missing_payment_term')
         payment_term, = payment_terms
 
         if invoice_type in ['out_invoice', 'out_credit_note']:
             if not party.account_receivable:
-                self.raise_user_error('missing_account_receivable',
+                cls.raise_user_error('missing_account_receivable',
                     error_args=(party.name, party))
             account = party.account_receivable
             payment_term = party.customer_payment_term or payment_term
         else:
             if not party.account_payable:
-                self.raise_user_error('missing_account_payable',
+                cls.raise_user_error('missing_account_payable',
                     error_args=(party.name, party))
             account = party.account_payable
             payment_term = party.supplier_payment_term or payment_term
@@ -66,29 +67,25 @@ class Invoice:
                 ('type', '=', _TYPE2JOURNAL.get(invoice_type, 'revenue')),
                 ], limit=1)
         if not journals:
-            self.raise_user_error('missing_journal',
+            cls.raise_user_error('missing_journal',
                 error_args=(invoice_type))
         journal, = journals
 
         invoice_address = party.address_get(type='invoice')
-        company = Transaction().context.get('company')
-        company = Pool().get('company.company')(company)
 
         invoice = Invoice()
-        invoice.party = party
-        invoice.invoice_address = invoice_address and invoice_address or None
         invoice.type = invoice_type
-        invoice.company = company
+        invoice.company = invoice.default_company()
         invoice.journal = journal
         invoice.account = account
+        invoice.currency = invoice.default_currency()
+        invoice.currency_date = Date.today()
+        invoice.party = party
+        invoice.invoice_address = invoice_address and invoice_address or None
+        invoice.on_change_party()
 
-        for key, value in invoice.on_change_party().iteritems():
-            setattr(invoice, key, value)
-
-        if not hasattr(invoice, 'payment_term'):
+        if not invoice.payment_term:
             invoice.payment_term = payment_term
-        if not hasattr(invoice, 'currency'):
-            invoice.currency = company.currency
         if description:
             invoice.description = description
         return invoice
@@ -98,15 +95,7 @@ class InvoiceLine:
     __name__ = 'account.invoice.line'
 
     @classmethod
-    def __setup__(cls):
-        super(InvoiceLine, cls).__setup__()
-        cls._error_messages.update({
-                'missing_product_uom': 'Product Uom "%s" is not available.',
-                })
-
-    @classmethod
-    def get_invoice_line_data(self, invoice, product, quantity, uom='u',
-            note=None):
+    def get_invoice_line_data(cls, invoice, product, quantity, note=None):
         '''
         Return invoice line values
         :param invoice: the BrowseRecord of the invoice
@@ -117,7 +106,6 @@ class InvoiceLine:
         :return: an object
         '''
         InvoiceLine = Pool().get('account.invoice.line')
-        ProductUom = Pool().get('product.uom')
 
         invoice_type = invoice.type or 'out_invoice'
         # Test if a revenue or an expense account exists for the product
@@ -126,29 +114,21 @@ class InvoiceLine:
         else:
             product.account_expense_used
 
-        uoms = ProductUom.search(['symbol', '=', uom], limit=1)
-        if not uoms:
-            self.raise_user_error('missing_product_uom', error_args=(uom))
-        uom, = uoms
-
         line = InvoiceLine()
-        line.unit = uom
+        line.invoice = invoice
+        line.currency = invoice.default_currency()
+        line.party = invoice.party
         line.quantity = quantity
         line.product = product
-        line.invoice = invoice
-        line.description = None
-        line.party = invoice.party
-        line.unit = product.default_uom
         line.type = 'line'
         line.sequence = 1
-
-        for key, value in line.on_change_product().iteritems():
-            setattr(line, key, value)
-
+        line.on_change_product()
+        if note:
+            line.note = note
         return line
 
     @classmethod
-    def get_invoice_line_product(self, party, product, qty=1, desc=None,
+    def get_invoice_line_product(cls, party, product, qty=1, desc=None,
             invoice_type='out_invoice'):
         '''
         Get Product values
@@ -186,21 +166,13 @@ class InvoiceLine:
         line = InvoiceLine()
         line.quantity = qty
         line.invoice = invoice
+        line.currency = invoice.default_currency()
         line.product = product
-        line.description = desc or product.name
         line.party = party
-        line.unit = product.default_uom
-
-        account_line = InvoiceLine()
-        account_line.quantity = qty
-        account_line.product = product
-        account_line.description = desc or product.name
-        account_line.party = party
-        account_line.unit = product.default_uom
-        account_line.type = 'line'
-        account_line.sequence = 1
-
-        for key, value in line.on_change_product().iteritems():
-            setattr(account_line, key, value)
-
-        return account_line
+        line.type = 'line'
+        line.sequence = 1
+        line.on_change_product()
+        if desc:
+            line.description = desc
+        line.invoice =  None
+        return line
