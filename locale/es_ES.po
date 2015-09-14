@@ -3,6 +3,10 @@ msgid ""
 msgstr "Content-Type: text/plain; charset=utf-8\n"
 
 msgctxt "error:account.invoice:"
+msgid "A journal has not been defined for \"%s\"."
+msgstr "No se ha definido un diario para \"%s\"."
+
+msgctxt "error:account.invoice:"
 msgid "A payment term has not been defined."
 msgstr "No se ha definido un plazo de pago."
 
