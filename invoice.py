@@ -123,6 +123,8 @@ class InvoiceLine:
         line.type = 'line'
         line.sequence = 1
         line.on_change_product()
+        if not hasattr(line, 'unit_price'):
+            line.unit_price = product.list_price
         if note:
             line.note = note
         return line
@@ -172,6 +174,8 @@ class InvoiceLine:
         line.type = 'line'
         line.sequence = 1
         line.on_change_product()
+        if not hasattr(line, 'unit_price'):
+            line.unit_price = product.list_price
         if desc:
             line.description = desc
         line.invoice =  None
