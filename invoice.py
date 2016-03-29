@@ -6,7 +6,6 @@ from trytond.transaction import Transaction
 from trytond.modules.account_invoice.invoice import _TYPE2JOURNAL
 
 __all__ = ['Invoice', 'InvoiceLine']
-__metaclass__ = PoolMeta
 
 #_TYPE2JOURNAL = {
     #'out_invoice': 'revenue',
@@ -17,6 +16,7 @@ __metaclass__ = PoolMeta
 
 
 class Invoice:
+    __metaclass__ = PoolMeta
     __name__ = 'account.invoice'
 
     @classmethod
@@ -92,6 +92,7 @@ class Invoice:
 
 
 class InvoiceLine:
+    __metaclass__ = PoolMeta
     __name__ = 'account.invoice.line'
 
     @classmethod
