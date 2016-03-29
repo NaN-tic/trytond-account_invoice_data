@@ -50,7 +50,7 @@ class Invoice:
             cls.raise_user_error('missing_payment_term')
         payment_term, = payment_terms
 
-        if invoice_type in ['out_invoice', 'out_credit_note']:
+        if invoice_type == 'out':
             if not party.account_receivable:
                 cls.raise_user_error('missing_account_receivable',
                     error_args=(party.name, party))
@@ -110,7 +110,7 @@ class InvoiceLine:
 
         invoice_type = invoice.type or 'out_invoice'
         # Test if a revenue or an expense account exists for the product
-        if invoice_type in ['out_invoice', 'out_credit_note']:
+        if invoice_type == 'out':
             product.account_revenue_used
         else:
             product.account_expense_used
@@ -154,7 +154,7 @@ class InvoiceLine:
                 product = Product(product.id)
 
         # Test if a revenue or an expense account exists for the product
-        if invoice_type in ['out_invoice', 'out_credit_note']:
+        if invoice_type == 'out':
             product.account_revenue_used
         else:
             product.account_expense_used
