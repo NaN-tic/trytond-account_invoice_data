@@ -174,9 +174,8 @@ class InvoiceLine:
         line.party = party
         line.type = 'line'
         line.sequence = 1
+        line.unit_price = product.list_price
         line.on_change_product()
-        if not hasattr(line, 'unit_price'):
-            line.unit_price = product.list_price
         if desc:
             line.description = desc
         line.invoice =  None
