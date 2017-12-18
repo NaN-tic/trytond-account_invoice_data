@@ -117,6 +117,7 @@ class InvoiceLine:
 
         line = InvoiceLine()
         line.invoice = invoice
+        line.company = line.default_company()
         line.currency = invoice.default_currency()
         line.party = invoice.party
         line.quantity = quantity
