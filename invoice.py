@@ -7,12 +7,10 @@ from trytond.modules.account_invoice.invoice import _TYPE2JOURNAL
 
 __all__ = ['Invoice', 'InvoiceLine']
 
-#_TYPE2JOURNAL = {
-    #'out_invoice': 'revenue',
-    #'in_invoice': 'expense',
-    #'out_credit_note': 'revenue',
-    #'in_credit_note': 'expense',
-#}
+# _TYPE2JOURNAL = {
+#     'out': 'revenue',
+#     'in': 'expense',
+# }
 
 
 class Invoice:
@@ -32,8 +30,7 @@ class Invoice:
                 })
 
     @classmethod
-    def get_invoice_data(cls, party, description=None,
-            invoice_type='out_invoice'):
+    def get_invoice_data(cls, party, description=None, invoice_type='out'):
         '''
         Return invoice values from party
         :param party: the BrowseRecord of the party
@@ -108,7 +105,7 @@ class InvoiceLine:
         '''
         InvoiceLine = Pool().get('account.invoice.line')
 
-        invoice_type = invoice.type or 'out_invoice'
+        invoice_type = invoice.type or 'out'
         # Test if a revenue or an expense account exists for the product
         if invoice_type == 'out':
             product.account_revenue_used
@@ -133,7 +130,7 @@ class InvoiceLine:
 
     @classmethod
     def get_invoice_line_product(cls, party, product, qty=1, desc=None,
-            invoice_type='out_invoice'):
+            invoice_type='out'):
         '''
         Get Product values
         :param party: the BrowseRecord of the party
