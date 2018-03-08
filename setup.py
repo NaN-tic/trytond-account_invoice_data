@@ -12,6 +12,8 @@ try:
 except ImportError:
     from ConfigParser import ConfigParser
 
+MODULE = 'account_invoice_data'
+PREFIX = 'trytonzz'
 MODULE2PREFIX = {}
 
 
@@ -19,6 +21,7 @@ def read(fname):
     return io.open(
         os.path.join(os.path.dirname(__file__), fname),
         'r', encoding='utf-8').read()
+
 
 def get_require_version(name):
     if minor_version % 2:
@@ -35,12 +38,11 @@ info = dict(config.items('tryton'))
 for key in ('depends', 'extras_depend', 'xml'):
     if key in info:
         info[key] = info[key].strip().splitlines()
+
 version = info.get('version', '0.0.1')
 major_version, minor_version, _ = version.split('.', 2)
 major_version = int(major_version)
 minor_version = int(minor_version)
-name = 'trytonzz_account_invoice_data'
-download_url = 'https://bitbucket.org/zikzakmedia/trytond-account_invoice_data'
 
 requires = []
 for dep in info.get('depends', []):
@@ -55,22 +57,22 @@ if minor_version % 2:
     # Add development index for testing with proteus
     dependency_links.append('https://trydevpi.tryton.org/')
 
-setup(name=name,
+setup(name='%s_%s' % (PREFIX, MODULE),
     version=version,
     description='Tryton Account Invoice Data Module',
     long_description=read('README'),
     author='Zikzakmedia SL',
     author_email='zikzak@zikzakmedia.com',
     url='https://bitbucket.org/zikzakmedia/',
-    download_url=download_url,
+    download_url='https://bitbucket.org/zikzakmedia/trytond-%s' % MODULE,
     keywords='',
-    package_dir={'trytond.modules.account_invoice_data': '.'},
+    package_dir={'trytond.modules.%s' % MODULE: '.'},
     packages=[
-        'trytond.modules.account_invoice_data',
-        'trytond.modules.account_invoice_data.tests',
+        'trytond.modules.%s' % MODULE,
+        'trytond.modules.%s.tests' % MODULE,
         ],
     package_data={
-        'trytond.modules.account_invoice_data': (info.get('xml', [])
+        'trytond.modules.%s' % MODULE: (info.get('xml', [])
             + ['tryton.cfg', 'view/*.xml', 'locale/*.po', '*.odt',
                 'icons/*.svg', 'tests/*.rst']),
         },
@@ -97,9 +99,9 @@ setup(name=name,
         'Natural Language :: Spanish',
         'Operating System :: OS Independent',
         'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: Implementation :: CPython',
         'Programming Language :: Python :: Implementation :: PyPy',
         'Topic :: Office/Business',
@@ -110,8 +112,8 @@ setup(name=name,
     zip_safe=False,
     entry_points="""
     [trytond.modules]
-    account_invoice_data = trytond.modules.account_invoice_data
-    """,
+    %s = trytond.modules.%s
+    """ % (MODULE, MODULE),
     test_suite='tests',
     test_loader='trytond.test_loader:Loader',
     tests_require=tests_require,
