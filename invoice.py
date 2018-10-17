@@ -13,8 +13,7 @@ __all__ = ['Invoice', 'InvoiceLine']
 # }
 
 
-class Invoice:
-    __metaclass__ = PoolMeta
+class Invoice(metaclass=PoolMeta):
     __name__ = 'account.invoice'
 
     @classmethod
@@ -88,8 +87,7 @@ class Invoice:
         return invoice
 
 
-class InvoiceLine:
-    __metaclass__ = PoolMeta
+class InvoiceLine(metaclass=PoolMeta):
     __name__ = 'account.invoice.line'
 
     @classmethod
